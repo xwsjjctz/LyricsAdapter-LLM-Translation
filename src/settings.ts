@@ -41,7 +41,7 @@ export function readSettings(context: PluginContext): TranslatorSettings {
     format,
     baseUrl,
     official: baseUrl === OFFICIAL_BASE_URL[format],
-    apiKey: text(context, 'api-key'),
+    apiKey: (context.secrets.get('api-key') ?? '').trim(),
     model,
     style: style === 'faithful' || style === 'poetic' ? style : 'natural',
     instructions: text(context, 'instructions'),

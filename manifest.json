@@ -2,7 +2,7 @@
   "manifestVersion": 1,
   "id": "llm-translation",
   "name": "大语言模型歌词翻译",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "index.cjs",
   "homepage": "https://github.com/xwsjjctz/LyricsAdapter-LLM-Translation",
   "update": { "kind": "github", "repository": "xwsjjctz/LyricsAdapter-LLM-Translation", "channel": "stable" },
