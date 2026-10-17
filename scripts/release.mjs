@@ -64,13 +64,20 @@ async function main() {
     bytes: await readFile(path.join(root, 'dist', `${manifest.id}.laplugin`)),
     currentFeed: await readJson('dist/plugins.update.json'), previousFeed, repository });
   await writeFile(path.join(root, 'dist/plugins.update.json'), `${JSON.stringify(release.feed, null, 2)}\n`);
+  // Use the creation response's ID: listing releases immediately afterwards may be stale.
   // Upload both assets while private; publishing creates the tag at the checked commit.
-  console.log(gh('release', 'create', release.tag, path.join(root, 'dist', release.file), path.join(root, 'dist/plugins.update.json'),
-    '--repo', repository, '--target', commit, '--title', release.tag, '--generate-notes', '--draft',
-    ...(release.prerelease ? ['--prerelease'] : [])));
-  const drafts = JSON.parse(gh('api', '--paginate', '--slurp', `repos/${repository}/releases?per_page=100`)).flat();
-  const draft = drafts.find(item => item.draft && item.tag_name === release.tag);
-  assert(draft, 'New release draft was not found');
+  const notes = JSON.parse(gh('api', '--method', 'POST', `repos/${repository}/releases/generate-notes`,
+    '-f', `tag_name=${release.tag}`, '-f', `target_commitish=${commit}`));
+  const draft = JSON.parse(gh('api', '--method', 'POST', `repos/${repository}/releases`,
+    '-f', `tag_name=${release.tag}`, '-f', `target_commitish=${commit}`, '-f', `name=${release.tag}`,
+    '-f', `body=${notes.body}`, '-F', 'draft=true', '-F', `prerelease=${release.prerelease}`));
+  assert(Number.isInteger(draft.id), 'New release draft ID was not returned');
+  for (const [file, contentType] of [[release.file, 'application/octet-stream'], ['plugins.update.json', 'application/json']]) {
+    const uploaded = JSON.parse(gh('api', '--method', 'POST',
+      `https://uploads.github.com/repos/${repository}/releases/${draft.id}/assets?name=${encodeURIComponent(file)}`,
+      '--header', `Content-Type: ${contentType}`, '--input', path.join(root, 'dist', file)));
+    assert.equal(uploaded.state, 'uploaded', `Upload failed: ${file}`);
+  }
   gh('api', '--method', 'PATCH', `repos/${repository}/releases/${draft.id}`, '-F', 'draft=false');
   console.log(`Published ${release.tag} from ${commit}`);
 }
