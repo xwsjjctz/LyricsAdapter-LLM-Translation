@@ -1,10 +1,14 @@
-name: Check
+name: Check and release
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: plugin-${{ github.ref }}
+  cancel-in-progress: false
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -20,3 +24,23 @@ jobs:
         with:
           name: llm-translation
           path: dist/
+          if-no-files-found: error
+  release:
+    needs: check
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - uses: actions/download-artifact@v4
+        with:
+          name: llm-translation
+          path: dist/
+      - name: Publish a new version and preserve update history
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/release.mjs

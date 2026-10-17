@@ -59,12 +59,15 @@ npm run check      # 类型检查 + 打包
 
 `vendor/` 中是从 LyricsAdapter 主仓库 `packages/plugin-sdk` 打包的 SDK（1.2.0），仅提供类型，构建时会被移除。
 
-发布新版本：
+自动发布新版本：
 
-1. 修改 `manifest.json` 与 `package.json` 中的版本号。
-2. 把上一个 Release 的 `plugins.update.json` 下载到 `dist/`，以保留历史版本（旧宿主可以选到与自己兼容的最后版本）。
-3. 运行 `npm run package`（可加 `-- --notes notes.txt` 写入更新说明），生成 `dist/llm-translation.laplugin` 与 `dist/plugins.update.json`。
-4. 创建 `v<版本>` Release，上传这两个文件。文件名必须保持 `plugins.update.json`，宿主从 latest Release 读取它。
+1. 同步修改 `manifest.json`、`package.json` 与 `package-lock.json` 中的版本号。
+2. 提交并推送到 `main`。`Check and release` 工作流会运行类型检查、测试和打包；全部通过后自动创建 `v<版本>` GitHub Release，上传 `llm-translation.laplugin` 与 `plugins.update.json`。Pull Request 只检查，不发布。
+3. 工作流会合并上一个已发布版本的更新清单，保留历史兼容版本。安装包与更新清单上传到草稿后才公开，标签在公开时创建并指向本次提交。
+
+同一版本已经发布时自动跳过，不覆盖现有资产。带 `-beta.1` 等后缀的版本标为预发布。可在 Actions 中手动运行工作流以重试；如果留下未完成的草稿，先检查或删除该草稿再重试。
+
+本地只打包可运行 `npm run package`（可加 `-- --notes notes.txt` 写入更新说明）。手动维护更新清单时，先将上一版 `plugins.update.json` 放入 `dist/`。更新清单文件名必须保持 `plugins.update.json`，宿主从 latest Release 读取它。
 
 ## 文件
 
